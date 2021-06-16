@@ -8,6 +8,7 @@ nmsThreshold = 0.3
 
 # Setup a video capture device. 0 is usually the inbuilt webcam
 capDevice = capDevice = cv.VideoCapture(0, cv.CAP_DSHOW)
+#video capture from pre-recorded video
 
 # Defines the classes file used in YOLO
 classNamesFile = "Files/coco.names"
@@ -26,8 +27,6 @@ network = cv.dnn.readNetFromDarknet(modelConfig, modelWeights)
 network.setPreferableBackend(cv.dnn.DNN_BACKEND_OPENCV)
 network.setPreferableTarget(cv.dnn.DNN_TARGET_CPU)
 
-
-
 def findObjects(outputs, img):
     height, width, channel = img.shape
     bbox = []
@@ -37,8 +36,8 @@ def findObjects(outputs, img):
     # Obtains the objects that are greater than the confidence threshold defined
     for output in outputs:
         for detection in output:
-            scores=detection[5:]
-            classID=np.argmax(scores)
+            scores = detection[5:]
+            classID = np.argmax(scores)
             conf = scores[classID]
             if conf > confThreshold:
                 w,h = int(detection[2]*width), int(detection[3]*height)
@@ -56,7 +55,11 @@ def findObjects(outputs, img):
         x, y, w, h = box[0], box[1], box[2], box[3]
 
         # Draws a bounding box and writes the class name of the object identified
-        cv.rectangle(img, (x, y), (x+w, y+h), (255,0,0) , 2)
+        if classIDs[i]==0:
+            cv.rectangle(img, (x, y), (x + w, y + h), (0, 0, 255), 5)
+        else:
+            cv.rectangle(img, (x, y), (x+w, y+h), (255,0,0) , 2)
+
         cv.putText(img, f"{classNames[classIDs[i]].upper()} {int(confidence[i]*100)}%",
                    (x, y-10), cv.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2, cv.LINE_AA)
 
@@ -79,7 +82,6 @@ while True:
 
     if cv.waitKey(1) == ord("q"):
         break
-
 
 # Releases the video capture device and closes all windows
 capDevice.release()
