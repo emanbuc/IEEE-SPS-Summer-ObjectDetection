@@ -8,14 +8,19 @@ from tracker import *
 MAX_PEOPLE = 5
 ZONE_LIMIT_X = 200
 ZONE_LIMIT_Y = 200
+ZONE_FENCH=(10,10,200,200)
 TRACKING_FRAME_NUMBER = 10
 COLOR_OK = (0, 255, 0) # GREEN
 COLOR_INFO = (255, 255, 255) # WHITE
 COLOR_ALERT = (0, 0, 255) #RED
 
+def isInside(x,y):
+    inside = x<ZONE_FENCH[0]<ZONE_FENCH[2] & y<ZONE_FENCH[1]<ZONE_FENCH[3]
+    return inside
+
 # Setup a video capture device. 0 is usually the inbuilt webcam
 # capDevice = capDevice = cv.VideoCapture(0, cv.CAP_DSHOW)
-capDevice = capDevice = cv.VideoCapture("Files/shop.mp4")
+capDevice = capDevice = cv.VideoCapture("Files/door_entrance2.mp4")
 
 # Defines the classes file used in YOLO
 classNamesFile = "Files/coco.names"
@@ -115,7 +120,8 @@ while True:
             cv.putText(frame, text, (10, H - ((i * 20) + 20)),
                        cv.FONT_HERSHEY_SIMPLEX, 0.6, rectColor, 2)
 
-    cv.line(frame, (0, ZONE_LIMIT_Y), (W, ZONE_LIMIT_Y), (255, 255, 255), 3)
+    cv.rectangle(frame,ZONE_FENCH, COLOR_INFO, 3)
+    #cv.line(frame, (0, ZONE_LIMIT_Y), (W, ZONE_LIMIT_Y), (255, 255, 255), 3)
     cv.imshow("Frame", frame)
     totalFrames = totalFrames + 1
     if cv.waitKey(1) == ord("q"):
