@@ -6,7 +6,7 @@ from trackableobject import TrackableObject
 from tracker import *
 
 MAX_PEOPLE = 5
-ZONE_FENCH=(10,10,200,200)
+ZONE_FENCH=(10,100,300,600)
 TRACKING_FRAME_NUMBER = 10
 COLOR_OK = (0, 255, 0) # GREEN
 COLOR_INFO = (255, 255, 255) # WHITE
@@ -38,13 +38,14 @@ network.setInputScale(1.0 / 127.5)
 network.setInputMean((127.5, 127.5, 127.5))
 network.setInputSwapRB(True)
 
-totalFrames = 0
+
 totalPeopleInside = 0 # People inside the monitored area detected
-totalUp = 0
-totalDown = 0
+
 trackedObjects = {}
 H = None
 W = None
+tracker = EuclideanDistTracker()
+
 while True:
     totalPeopleInside=0
     ret, frame = capDevice.read()
@@ -53,7 +54,7 @@ while True:
         break
 
     # resize the frame (the less data we have, the faster we can process it)
-    frame = imutils.resize(frame, width=500)
+    #frame = imutils.resize(frame, width=500)
 
     if W is None or H is None:
         (H, W) = frame.shape[:2]
@@ -74,35 +75,35 @@ while True:
                            cv.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
 
                 detections.append([x, y, w, h])
-                tracker = EuclideanDistTracker()
-                boxes_ids = tracker.update(detections)
 
-                for box_id in boxes_ids:
-                    bx, by, bw, bh, objId = box_id
-                    cy = (by + by + bh) // 2
-                    cx = (bx + bx + bw) // 2
+        boxes_ids = tracker.update(detections)
 
-                    to = trackedObjects.get(objId, None)
+        for box_id in boxes_ids:
+            bx, by, bw, bh, objId = box_id
+            cy = (by + by + bh) // 2
+            cx = (bx + bx + bw) // 2
 
-                    # if there is no existing trackable object, create one
-                    if to is None:
-                        to = TrackableObject(objId, box_id)
-                        trackedObjects[objId] = to
+            to = trackedObjects.get(objId, None)
 
-                if isInside(cx,cy):
-                    totalPeopleInside = totalPeopleInside + 1
+            # if there is no existing trackable object, create one
+            if to is None:
+                to = TrackableObject(objId, box_id)
+                trackedObjects[objId] = to
 
-                rectColor = COLOR_INFO
+            if isInside(cx,cy):
+                totalPeopleInside = totalPeopleInside + 1
 
-                if (totalPeopleInside > MAX_PEOPLE) & isInside(cx,cy):
-                    rectColor = COLOR_ALERT
-                elif isInside(cx,cy):
-                    rectColor = COLOR_OK
+            rectColor = COLOR_INFO
 
-                cv.circle(frame, (cx, cy), 4, COLOR_INFO, -1)
-                cv.putText(frame, "ID: "+str(to.objectID) +"( "+str(cx)+","+str(cy)+")", (bx + 10, by + 30),
-                           cv.FONT_HERSHEY_SIMPLEX, 0.7, COLOR_INFO, 2)
-                cv.rectangle(frame, (bx, by), (bx + bw, by + bh), rectColor, 2,-1)
+            if (totalPeopleInside > MAX_PEOPLE) & isInside(cx,cy):
+                rectColor = COLOR_ALERT
+            elif isInside(cx,cy):
+                rectColor = COLOR_OK
+
+            cv.circle(frame, (cx, cy), 4, COLOR_INFO, -1)
+            cv.putText(frame, "ID: "+str(to.objectID) +"( "+str(cx)+","+str(cy)+")", (bx + 10, by + 30),
+                       cv.FONT_HERSHEY_SIMPLEX, 0.7, COLOR_INFO, 2)
+            cv.rectangle(frame, (bx, by), (bx + bw, by + bh), rectColor, 2,-1)
 
         # construct a tuple of information we will be displaying on the
         # frame
@@ -121,7 +122,6 @@ while True:
     cv.rectangle(frame,ZONE_FENCH, COLOR_INFO, 3)
     #cv.line(frame, (0, ZONE_LIMIT_Y), (W, ZONE_LIMIT_Y), (255, 255, 255), 3)
     cv.imshow("Frame", frame)
-    totalFrames = totalFrames + 1
     if cv.waitKey(1) == ord("q"):
         break
 
