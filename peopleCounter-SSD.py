@@ -1,8 +1,11 @@
 # Allows the use of the opencv package through the reference "cv"
 import cv2 as cv
-import numpy as np
+
+from trackableobject import TrackableObject
+from tracker import *
 
 MAX_PEOPLE = 5
+DOOR_LIMIT = 200
 
 # Setup a video capture device. 0 is usually the inbuilt webcam
 #capDevice = capDevice = cv.VideoCapture(0, cv.CAP_DSHOW)
@@ -28,12 +31,15 @@ network.setInputMean((127.5, 127.5, 127.5))
 network.setInputSwapRB(True)
 
 totalPeople= 0
+totalUp = 0
+totalDown = 0
+trackableObjects = {}
 while True:
-    totalPeople = 0
     ret, frame = capDevice.read()
 
     # Obtains the class IDs, confidence values and bounding boxes from the image
-    classIDs, confidence, bbox = network.detect(frame,confThreshold=0.5)
+    classIDs, confidence, bbox = network.detect(frame,confThreshold=0.4)
+    detections = []
 
     # Draws a bounding box and writes text only if a class has been identified
     if len(classIDs)!=0:
@@ -46,6 +52,40 @@ while True:
                 cv.putText(frame, f"{int(conf*100)}%", (box[0] + 150, box[1] + 30),
                            cv.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
                 x, y, w, h = box[0], box[1], box[2], box[3]
+                detections.append([x, y, w, h])
+                tracker = EuclideanDistTracker()
+                boxes_ids = tracker.update(detections)
+
+                for box_id in boxes_ids:
+                    x, y, w, h, objId = box_id
+                    to = trackableObjects.get(objId, None)
+
+                    # if there is no existing trackable object, create one
+                    if to is None:
+                        to = TrackableObject(objId, box_id)
+
+                    if y > to.bbox[1] :
+                        direction = 1 # UPPER
+                    else:
+                        direction = -1 # DOWN
+
+                    if not to.counted:
+                        # if the direction is negative (indicating the object
+                        # is moving up) AND the centroid is above the center
+                        # line, count the object
+                        if direction < 0 and y < DOOR_LIMIT:
+                            totalUp += 1
+                            to.counted = True
+
+                        # if the direction is positive (indicating the object
+                        # is moving down) AND the centroid is below the
+                        # center line, count the object
+                        elif direction > 0 and y > DOOR_LIMIT:
+                            totalDown += 1
+                            to.counted = True
+
+
+
 
                 # Draws a bounding box and writes the class name of the object identified
                 totalPeople = totalPeople + 1
@@ -55,6 +95,19 @@ while True:
                     rectColor = (0, 255, 0)
 
                 cv.rectangle(frame, (x, y), (x + w, y + h), rectColor, 5)
+
+        # construct a tuple of information we will be displaying on the
+        # frame
+        info = [
+            ("Up", totalUp),
+            ("Down", totalDown)
+        ]
+
+        # loop over the info tuples and draw them on our frame
+        for (i, (k, v)) in enumerate(info):
+            text = "{}: {}".format(k, v)
+            cv.putText(frame, text, (10, 10 - ((i * 20) + 20)),
+                        cv.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
 
     cv.imshow("Frame", frame)
     if cv.waitKey(1) == ord("q"):
