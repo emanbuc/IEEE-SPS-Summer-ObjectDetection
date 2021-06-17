@@ -1,5 +1,6 @@
 # Allows the use of the opencv package through the reference "cv"
 import cv2 as cv
+import imutils as imutils
 
 from trackableobject import TrackableObject
 from tracker import *
@@ -34,8 +35,18 @@ totalPeople= 0
 totalUp = 0
 totalDown = 0
 trackableObjects = {}
+H=None
+W=None
 while True:
     ret, frame = capDevice.read()
+
+    # resize the frame to have a maximum width of 500 pixels (the
+    # less data we have, the faster we can process it), then convert
+    # the frame from BGR to RGB for dlib
+    frame = imutils.resize(frame, width=500)
+
+    if W is None or H is None:
+        (H, W) = frame.shape[:2]
 
     # Obtains the class IDs, confidence values and bounding boxes from the image
     classIDs, confidence, bbox = network.detect(frame,confThreshold=0.4)
@@ -85,8 +96,6 @@ while True:
                             to.counted = True
 
 
-
-
                 # Draws a bounding box and writes the class name of the object identified
                 totalPeople = totalPeople + 1
                 if totalPeople > MAX_PEOPLE:
@@ -106,9 +115,10 @@ while True:
         # loop over the info tuples and draw them on our frame
         for (i, (k, v)) in enumerate(info):
             text = "{}: {}".format(k, v)
-            cv.putText(frame, text, (10, 10 - ((i * 20) + 20)),
-                        cv.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
+            cv.putText(frame, text, (10, H - ((i * 20) + 20)),
+                        cv.FONT_HERSHEY_SIMPLEX, 0.6, rectColor, 2)
 
+    cv.line(frame, (0, DOOR_LIMIT), (W, DOOR_LIMIT), (255, 255, 255), 3)
     cv.imshow("Frame", frame)
     if cv.waitKey(1) == ord("q"):
         break
