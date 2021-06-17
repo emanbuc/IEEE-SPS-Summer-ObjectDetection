@@ -1,5 +1,6 @@
 import math
 
+SAME_OBJECT_TH= 30
 
 class EuclideanDistTracker:
     def __init__(self):
@@ -25,7 +26,7 @@ class EuclideanDistTracker:
             for id, pt in self.center_points.items():
                 dist = math.hypot(cx - pt[0], cy - pt[1])
 
-                if dist < 25:
+                if dist < SAME_OBJECT_TH:
                     self.center_points[id] = (cx, cy)
                     print(self.center_points)
                     objects_bbs_ids.append([x, y, w, h, id])

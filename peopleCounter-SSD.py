@@ -6,7 +6,8 @@ from trackableobject import TrackableObject
 from tracker import *
 
 MAX_PEOPLE = 5
-DOOR_LIMIT = 400
+ZONE_LIMIT_X = 200
+ZONE_LIMIT_Y = 200
 TRACKING_FRAME_NUMBER = 10
 COLOR_OK = (0, 255, 0) # GREEN
 COLOR_INFO = (255, 255, 255) # WHITE
@@ -49,7 +50,7 @@ while True:
         break
 
     # resize the frame (the less data we have, the faster we can process it)
-    #frame = imutils.resize(frame, width=500)
+    frame = imutils.resize(frame, width=500)
 
     if W is None or H is None:
         (H, W) = frame.shape[:2]
@@ -85,20 +86,20 @@ while True:
                         to = TrackableObject(objId, box_id)
                         trackedObjects[objId] = to
 
-                if cy < DOOR_LIMIT:
+                if cy < ZONE_LIMIT_Y:
                     totalPeopleInside = totalPeopleInside + 1
 
                 rectColor = COLOR_INFO
 
-                if (totalPeopleInside > MAX_PEOPLE) & (cy < DOOR_LIMIT):
+                if (totalPeopleInside > MAX_PEOPLE) & (cy < ZONE_LIMIT_Y):
                     rectColor = COLOR_ALERT
-                elif cy < DOOR_LIMIT:
+                elif cy < ZONE_LIMIT_Y:
                     rectColor = COLOR_OK
 
                 cv.circle(frame, (cx, cy), 4, COLOR_INFO, -1)
                 cv.putText(frame, "ID: "+str(to.objectID) +"( "+str(cx)+","+str(cy)+")", (bx + 10, by + 30),
                            cv.FONT_HERSHEY_SIMPLEX, 0.7, COLOR_INFO, 2)
-                cv.rectangle(frame, (bx, by), (bx + bw, by + bh), rectColor, 5)
+                cv.rectangle(frame, (bx, by), (bx + bw, by + bh), rectColor, 2,-1)
 
         # construct a tuple of information we will be displaying on the
         # frame
@@ -114,7 +115,7 @@ while True:
             cv.putText(frame, text, (10, H - ((i * 20) + 20)),
                        cv.FONT_HERSHEY_SIMPLEX, 0.6, rectColor, 2)
 
-    cv.line(frame, (0, DOOR_LIMIT), (W, DOOR_LIMIT), (255, 255, 255), 3)
+    cv.line(frame, (0, ZONE_LIMIT_Y), (W, ZONE_LIMIT_Y), (255, 255, 255), 3)
     cv.imshow("Frame", frame)
     totalFrames = totalFrames + 1
     if cv.waitKey(1) == ord("q"):
