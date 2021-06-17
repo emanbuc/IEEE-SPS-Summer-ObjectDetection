@@ -7,6 +7,7 @@ from tracker import *
 
 MAX_PEOPLE = 5
 DOOR_LIMIT = 200
+TRACKING_FRAME_NUMBER = 10
 
 # Setup a video capture device. 0 is usually the inbuilt webcam
 #capDevice = capDevice = cv.VideoCapture(0, cv.CAP_DSHOW)
@@ -31,10 +32,11 @@ network.setInputScale(1.0/127.5)
 network.setInputMean((127.5, 127.5, 127.5))
 network.setInputSwapRB(True)
 
+totalFrames=0
 totalPeople= 0
 totalUp = 0
 totalDown = 0
-trackableObjects = {}
+trackedObjects = {}
 H=None
 W=None
 while True:
@@ -45,12 +47,17 @@ while True:
     # the frame from BGR to RGB for dlib
     frame = imutils.resize(frame, width=500)
 
+    if totalFrames % TRACKING_FRAME_NUMBER == 0:
+        trackedObjects = {}
+
     if W is None or H is None:
         (H, W) = frame.shape[:2]
 
     # Obtains the class IDs, confidence values and bounding boxes from the image
     classIDs, confidence, bbox = network.detect(frame,confThreshold=0.4)
     detections = []
+    totalUp = 0
+    totalDown = 0
 
     # Draws a bounding box and writes text only if a class has been identified
     if len(classIDs)!=0:
@@ -69,31 +76,34 @@ while True:
 
                 for box_id in boxes_ids:
                     x, y, w, h, objId = box_id
-                    to = trackableObjects.get(objId, None)
+                    cy = (y + y + h) // 2
+
+                    to = trackedObjects.get(objId, None)
 
                     # if there is no existing trackable object, create one
                     if to is None:
                         to = TrackableObject(objId, box_id)
-
-                    if y > to.bbox[1] :
-                        direction = 1 # UPPER
+                        trackedObjects[objId]=to
                     else:
-                        direction = -1 # DOWN
+                        if cy > to.center[1]:
+                            direction = 1 # DOWN
+                        elif cy== to.center[1]:
+                            direction = 0 # UP
+                        else:
+                            direction = -1  # UP
 
-                    if not to.counted:
-                        # if the direction is negative (indicating the object
-                        # is moving up) AND the centroid is above the center
-                        # line, count the object
-                        if direction < 0 and y < DOOR_LIMIT:
-                            totalUp += 1
-                            to.counted = True
+                        if not to.counted:
+                            # if the direction is negative (indicating the object
+                            # is moving up) AND the box is above the DOOR_LIMIT
+                            if direction < 0 and y < DOOR_LIMIT:
+                                totalUp += 1
+                                to.counted = True
 
-                        # if the direction is positive (indicating the object
-                        # is moving down) AND the centroid is below the
-                        # center line, count the object
-                        elif direction > 0 and y > DOOR_LIMIT:
-                            totalDown += 1
-                            to.counted = True
+                            # if the direction is positive (indicating the object
+                            # is moving down) AND the AND the box is below the DOOR_LIMITct
+                            elif direction > 0 and y > DOOR_LIMIT:
+                                totalDown += 1
+                                to.counted = True
 
 
                 # Draws a bounding box and writes the class name of the object identified
@@ -120,6 +130,7 @@ while True:
 
     cv.line(frame, (0, DOOR_LIMIT), (W, DOOR_LIMIT), (255, 255, 255), 3)
     cv.imshow("Frame", frame)
+    totalFrames = totalFrames+1
     if cv.waitKey(1) == ord("q"):
         break
 
