@@ -6,8 +6,6 @@ from trackableobject import TrackableObject
 from tracker import *
 
 MAX_PEOPLE = 5
-ZONE_LIMIT_X = 200
-ZONE_LIMIT_Y = 200
 ZONE_FENCH=(10,10,200,200)
 TRACKING_FRAME_NUMBER = 10
 COLOR_OK = (0, 255, 0) # GREEN
@@ -15,7 +13,7 @@ COLOR_INFO = (255, 255, 255) # WHITE
 COLOR_ALERT = (0, 0, 255) #RED
 
 def isInside(x,y):
-    inside = x<ZONE_FENCH[0]<ZONE_FENCH[2] & y<ZONE_FENCH[1]<ZONE_FENCH[3]
+    inside = (ZONE_FENCH[0]<x) & (x<ZONE_FENCH[2]) & (ZONE_FENCH[1]<y) &(y<ZONE_FENCH[3])
     return inside
 
 # Setup a video capture device. 0 is usually the inbuilt webcam
@@ -91,14 +89,14 @@ while True:
                         to = TrackableObject(objId, box_id)
                         trackedObjects[objId] = to
 
-                if cy < ZONE_LIMIT_Y:
+                if isInside(cx,cy):
                     totalPeopleInside = totalPeopleInside + 1
 
                 rectColor = COLOR_INFO
 
-                if (totalPeopleInside > MAX_PEOPLE) & (cy < ZONE_LIMIT_Y):
+                if (totalPeopleInside > MAX_PEOPLE) & isInside(cx,cy):
                     rectColor = COLOR_ALERT
-                elif cy < ZONE_LIMIT_Y:
+                elif isInside(cx,cy):
                     rectColor = COLOR_OK
 
                 cv.circle(frame, (cx, cy), 4, COLOR_INFO, -1)
