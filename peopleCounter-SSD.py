@@ -119,13 +119,13 @@ ret, frame = capDevice.read()
 #frame = imutils.resize(frame, width=args["resize"])
 (H, W) = frame.shape[:2]
 
-print("resize to width: " + str(args["resize"]))
+print("input resize to : " + str(args["resize"]))
 print("Frame size: W: " + str(W) + " H: " + str(H))
 
 # Sets up the SSD with various settings
 network = cv.dnn_DetectionModel(modelConfig, modelWeights)
 #network.setInputSize(W, H)
-network.setInputSize(320, 320)
+network.setInputSize(args["resize"], args["resize"])
 network.setInputScale(1.0 / 127.5)
 network.setInputMean((127.5, 127.5, 127.5))
 network.setInputSwapRB(True)
