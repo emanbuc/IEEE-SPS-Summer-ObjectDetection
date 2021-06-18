@@ -24,7 +24,6 @@ from tracker import *
 # ===============================================================
 # Global variables
 MAX_PEOPLE = 5
-ZONE_FENCH = (100, 100, 800, 500)
 TRACKING_FRAME_NUMBER = 10
 COLOR_OK = (0, 255, 0)  # GREEN
 COLOR_INFO = (255, 255, 255)  # WHITE
@@ -47,7 +46,15 @@ ap.add_argument("-o", "--output", type=str,
 ap.add_argument("-c", "--confidence", type=float, default=0.4,
                 help="minimum probability to filter weak detections")
 ap.add_argument("-r", "--resize", type=int, default=600,
-                help="minimum probability to filter weak detections")
+                help="frame width")
+ap.add_argument("-zx1", "--zone_x1", type=int, default=100,
+                help="Zone fench X1 (X1,Y1,X2,Y2)")
+ap.add_argument("-zy1", "--zone_y1", type=int, default=100,
+                help="Zone fench X1 (X1,Y1,X2,Y2)")
+ap.add_argument("-zx2", "--zone_x2", type=int, default=600,
+                help="Zone fench X1 (X1,Y1,X2,Y2)")
+ap.add_argument("-zy2", "--zone_y2", type=int, default=400,
+                help="Zone fench X1 (X1,Y1,X2,Y2)")
 args = vars(ap.parse_args())
 
 
@@ -60,8 +67,8 @@ args = vars(ap.parse_args())
 # --------------------------------------------------------------
 
 def is_inside(point: Point):
-    inside = (ZONE_FENCH[0] < point.x) & (point.x < ZONE_FENCH[2]) \
-             & (ZONE_FENCH[1] < point.y) & (point.y < ZONE_FENCH[3])
+    inside = (zone_fence[0] < point.x) & (point.x < zone_fence[2]) \
+             & (zone_fence[1] < point.y) & (point.y < zone_fence[3])
     return inside
 
 
@@ -105,9 +112,12 @@ W = None
 # initialize the video writer (we'll instantiate later if need be)
 writer = None
 
-#ret, frame = capDevice.read()
+zone_fence = (args["zone_x1"], args["zone_y1"], args["zone_x2"], args["zone_y2"])
+print(zone_fence)
+
+ret, frame = capDevice.read()
 #frame = imutils.resize(frame, width=args["resize"])
-#(H, W) = frame.shape[:2]
+(H, W) = frame.shape[:2]
 
 print("resize to width: " + str(args["resize"]))
 print("Frame size: W: " + str(W) + " H: " + str(H))
@@ -144,16 +154,15 @@ while True:
         fourcc = cv.VideoWriter_fourcc(*"MJPG")
         writer = cv.VideoWriter(args["output"], fourcc, 30, (W, H), True)
 
+    detections = []
     # Obtains the class IDs, confidence values and bounding boxes from the image
     classIDs, confidence, bbox = network.detect(frame, args["confidence"])
-    detections = []
 
-    # Draws a bounding box and writes text only if a class has been identified
+    # add person to detection object tracker
     if len(classIDs) != 0:
         for classID, conf, box in zip(classIDs.flatten(), confidence.flatten(), bbox):
             # print(classID)
-            # Writes the class name and confidence for classes in the COCO file
-            if classID == 1:  # only People
+            if classID == 1:  # add only only People
                 x, y, w, h = box[0], box[1], box[2], box[3]
 
                 cv.putText(frame, f"{int(conf * 100)}%", (box[0] + 150, box[1] + 30),
@@ -161,39 +170,40 @@ while True:
 
                 detections.append([x, y, w, h])
 
-        boxes_ids = tracker.update(detections)
+    trackers = tracker.update(detections)
 
-        for box_id in boxes_ids:
-            bx, by, bw, bh, objId = box_id
-            centroid = Point((bx + bx + bw) // 2, (by + by + bh) // 2)
+    # draw tracked object overlay on frame
+    for tracking_box in trackers:
+        bx, by, bw, bh, objId = tracking_box
+        centroid = Point((bx + bx + bw) // 2, (by + by + bh) // 2)
 
-            to = trackedObjects.get(objId, None)
+        to = trackedObjects.get(objId, None)
 
-            # if there is no existing trackable object, create one
-            if to is None:
-                to = TrackableObject(objId, box_id)
-                trackedObjects[objId] = to
+        # if there is no existing trackable object, create one
+        if to is None:
+            to = TrackableObject(objId, tracking_box)
+            trackedObjects[objId] = to
 
-            if is_inside(centroid):
-                totalPeopleInside = totalPeopleInside + 1
+        if is_inside(centroid):
+            totalPeopleInside = totalPeopleInside + 1
 
-            rectColor: tuple[int, int, int] = COLOR_INFO
+        rectColor: tuple[int, int, int] = COLOR_INFO
 
-            if (totalPeopleInside > MAX_PEOPLE) & is_inside(centroid):
-                rectColor = COLOR_ALERT
-            elif is_inside(centroid):
-                rectColor = COLOR_OK
+        if (totalPeopleInside > MAX_PEOPLE) & is_inside(centroid):
+            rectColor = COLOR_ALERT
+        elif is_inside(centroid):
+            rectColor = COLOR_OK
 
-            cv.circle(frame, (centroid.x, centroid.y), 4, rectColor, -1)
-            cv.putText(frame, "ID: " + str(to.objectID), (bx + 10, by + 30),
-                       cv.FONT_HERSHEY_SIMPLEX, 0.7, COLOR_INFO, 2)
-            cv.rectangle(frame, (bx, by), (bx + bw, by + bh), rectColor, 2, -1)
+        cv.circle(frame, (centroid.x, centroid.y), 4, rectColor, -1)
+        cv.putText(frame, "ID: " + str(to.objectID), (bx + 10, by + 30),
+                   cv.FONT_HERSHEY_SIMPLEX, 0.7, COLOR_INFO, 2)
+        cv.rectangle(frame, (bx, by), (bx + bw, by + bh), rectColor, 2, -1)
 
     cv.putText(frame, "People inside: " + str(totalPeopleInside), (10, H - 20),
                        cv.FONT_HERSHEY_SIMPLEX, 0.6, rectColor, 2)
 
     # Draw Fench overlay
-    cv.rectangle(frame, ZONE_FENCH, (100,100,100), 2, -1)
+    cv.rectangle(frame, (zone_fence[0],zone_fence[1]),(zone_fence[2],zone_fence[3]), (100, 100, 100), 2, -1)
 
     # check to see if we should write the frame to disk
     if writer is not None:
