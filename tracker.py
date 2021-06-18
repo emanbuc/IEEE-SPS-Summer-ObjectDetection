@@ -1,6 +1,6 @@
 import math
 
-SAME_OBJECT_TH= 30
+SAME_OBJECT_TH= 100
 
 class EuclideanDistTracker:
     def __init__(self):
