@@ -201,7 +201,7 @@ while True:
                    cv.FONT_HERSHEY_SIMPLEX, 0.7, COLOR_INFO, 2)
         cv.rectangle(frame, (bx, by), (bx + bw, by + bh), rectColor, 2, -1)
 
-    cv.putText(frame, "People inside: " + str(totalPeopleInside), (10, H - 20),
+    cv.putText(frame, "People inside: " + str(totalPeopleInside)+" / "+ str(args["max_people"]), (10, H - 20),
                        cv.FONT_HERSHEY_SIMPLEX, 0.6, rectColor, 2)
 
     print("Total Inside: ", totalPeopleInside)
