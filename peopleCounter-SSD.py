@@ -204,6 +204,7 @@ while True:
     cv.putText(frame, "People inside: " + str(totalPeopleInside), (10, H - 20),
                        cv.FONT_HERSHEY_SIMPLEX, 0.6, rectColor, 2)
 
+    print("Total Inside: ", totalPeopleInside)
     # Draw Fench overlay
     cv.rectangle(frame, (zone_fence[0],zone_fence[1]),(zone_fence[2],zone_fence[3]), (100, 100, 100), 2, -1)
 
