@@ -79,27 +79,20 @@ def init_video_capture_device():
         device = cv.VideoCapture(args["input"])
     return device
 
-
 #
 # --------------------------------------------------------------
 
-## ==============================================================
+
+# ==============================================================
 #  ************* MAIN ******************************************
 # ---------------------------------------------------------------
 capDevice = init_video_capture_device()
 if capDevice is None:
     print("Video Capture Device is NONE")
 
-# Defines the classes file used in YOLO
-classNamesFile = "Files/coco.names"
-
-# Reads the classes file and stores them in classNames
-with open(classNamesFile, "rt") as f:
-    classNames = f.read().rstrip("\n").split("\n")
-
 # Defines the SSD configuration and weights files
-modelConfig = "Files/ssd_mobilenet_v3_large_coco_2020_01_14.pbtxt"
-modelWeights = "Files/frozen_inference_graph.pb"
+modelConfig = args["prototxt"]
+modelWeights = args["model"]
 
 # Sets up the SSD with various settings
 network = cv.dnn_DetectionModel(modelConfig, modelWeights)
@@ -129,7 +122,7 @@ while True:
         (H, W) = frame.shape[:2]
 
     # Obtains the class IDs, confidence values and bounding boxes from the image
-    classIDs, confidence, bbox = network.detect(frame, confThreshold=0.4)
+    classIDs, confidence, bbox = network.detect(frame, args["confidence"])
     detections = []
 
     # Draws a bounding box and writes text only if a class has been identified
@@ -149,7 +142,7 @@ while True:
 
         for box_id in boxes_ids:
             bx, by, bw, bh, objId = box_id
-            centroid = Point((by + by + bh) // 2,(bx + bx + bw) // 2)
+            centroid = Point((by + by + bh) // 2, (bx + bx + bw) // 2)
 
             to = trackedObjects.get(objId, None)
 
