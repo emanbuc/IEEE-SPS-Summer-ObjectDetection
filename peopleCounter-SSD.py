@@ -23,7 +23,7 @@ from tracker import *
 
 # ===============================================================
 # Global variables
-MAX_PEOPLE = 5
+
 TRACKING_FRAME_NUMBER = 10
 COLOR_OK = (0, 255, 0)  # GREEN
 COLOR_INFO = (255, 255, 255)  # WHITE
@@ -55,6 +55,8 @@ ap.add_argument("-zx2", "--zone_x2", type=int, default=600,
                 help="Zone fench X1 (X1,Y1,X2,Y2)")
 ap.add_argument("-zy2", "--zone_y2", type=int, default=400,
                 help="Zone fench X1 (X1,Y1,X2,Y2)")
+ap.add_argument("-mp", "--max_people", type=int, default=5,
+                help="max people allowed into the fence")
 args = vars(ap.parse_args())
 
 
@@ -103,7 +105,7 @@ print("press 'q' key to EXIT")
 # Defines the SSD configuration and weights files
 modelConfig = args["prototxt"]
 modelWeights = args["model"]
-
+max_people_allowed = args["max_people"]
 totalPeopleInside = 0  # People inside the monitored area detected
 
 trackedObjects = {}
@@ -189,7 +191,7 @@ while True:
 
         rectColor: tuple[int, int, int] = COLOR_INFO
 
-        if (totalPeopleInside > MAX_PEOPLE) & is_inside(centroid):
+        if (totalPeopleInside > max_people_allowed) & is_inside(centroid):
             rectColor = COLOR_ALERT
         elif is_inside(centroid):
             rectColor = COLOR_OK
